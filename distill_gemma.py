@@ -78,7 +78,8 @@ class DistillConfig:
     student_model: str = "google/gemma-2-2b"
 
     # Dataset
-    dataset_name: str = "tatsu-lab/alpaca"
+    dataset_name: str = "open-r1/OpenR1-Math-220k"
+    max_samples: int = 20000 
     dataset_text_field: str = "text"
     max_seq_length: int = 2048
 
@@ -208,6 +209,10 @@ def prepare_dataset(config: DistillConfig, tokenizer: AutoTokenizer):
 
     logger.info("Shuffling the final dataset...")
     dataset = dataset.shuffle(seed=42)
+
+    if hasattr(config, "max_samples") and config.max_samples > 0 and len(dataset) > config.max_samples:
+        logger.info(f"Limiting dataset to {config.max_samples} randomly selected examples (from {len(dataset)})...")
+        dataset = dataset.select(range(config.max_samples))
 
     # Tokenize
     def tokenize_fn(examples):

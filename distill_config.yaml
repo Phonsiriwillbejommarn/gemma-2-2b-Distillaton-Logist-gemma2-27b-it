@@ -8,7 +8,8 @@ teacher_model: "google/gemma-3-27b-it"
 student_model: "google/gemma-2-2b"
 
 # --- Dataset ---
-dataset_name: "nohurry/Opus-4.6-Reasoning-3000x-filtered,math_combined_2566_2567.json,problems_1_5.json,problems_6_10.json,problems_101_125.json,combined.json,all_solutions.json"
+dataset_name: "open-r1/OpenR1-Math-220k"
+max_samples: 20000                     # Randomly sample to avoid extremely long epochs
 dataset_text_field: "text"             # Field name for text (used after formatting)
 max_seq_length: 8192                   # Maximum sequence length
 
