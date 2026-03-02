@@ -1,0 +1,57 @@
+# ============================================================
+# Knowledge Distillation Configuration
+# gemma-3-27b-it (Teacher) → gemma-2-2b (Student)
+# ============================================================
+
+# --- Model Settings ---
+teacher_model: "google/gemma-3-27b-it"
+student_model: "google/gemma-2-2b"
+
+# --- Dataset ---
+dataset_name: "rasbt/math_full_minus_math500,TeichAI/Aurora-Alpha-15.5k,HuggingFaceH4/CodeAlpaca_20K"
+dataset_text_field: "text"             # Field name for text (used after formatting)
+max_seq_length: 8192                   # Maximum sequence length
+
+# --- Distillation Hyperparameters ---
+alpha: 0.5                             # Weight for distillation loss (KL-div)
+                                       #   total_loss = alpha * KL_loss + (1 - alpha) * CE_loss
+temperature: 2.0                       # Temperature for softening logits
+                                       #   Higher = softer distribution = more knowledge transfer
+
+# --- Training Hyperparameters ---
+learning_rate: 2.0e-5
+num_train_epochs: 3
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 4         # Effective batch size = 4 * 4 = 16
+warmup_ratio: 0.1
+weight_decay: 0.01
+max_grad_norm: 1.0
+bf16: true                             # Use bfloat16 mixed precision
+gradient_checkpointing: true           # Save VRAM at cost of speed
+
+# --- Teacher Quantization ---
+teacher_load_in_4bit: true             # Load teacher in 4-bit (saves ~50% VRAM)
+teacher_bnb_4bit_compute_dtype: "bfloat16"
+teacher_bnb_4bit_quant_type: "nf4"
+
+# --- Output & Logging ---
+output_dir: "./distill_output"
+logging_steps: 10
+save_steps: 10
+save_total_limit: 5
+report_to: "wandb"                    # "wandb" or "tensorboard" or "none"
+push_to_hub: true
+hub_model_id: "Phonsiri/gemma-2-2b-Distillation-gemma-3-27b-it"
+
+# --- SFT Phase (sft_gemma.py) ---
+sft:
+  dataset_name: "nohurry/Opus-4.6-Reasoning-3000x-filtered"
+  max_seq_length: 8192                 # Reasoning chains can be long
+  sft_output_dir: "./sft_output"
+  num_train_epochs: 3
+  learning_rate: 2.0e-5
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 4
+  report_to: "wandb"
+  push_to_hub: true
+  hub_model_id: "Phonsiri/gemma-2-2b-SFT-Reasoning"
