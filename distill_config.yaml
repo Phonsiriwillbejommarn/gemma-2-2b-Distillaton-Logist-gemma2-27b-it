@@ -45,7 +45,7 @@ hub_model_id: "Phonsiri/gemma-2-2b-Distillation-gemma-3-27b-it"
 
 # --- SFT Phase (sft_gemma.py) ---
 sft:
-  dataset_name: "math_combined_2566_2567.json,problems_1_5.json,problems_6_10.json,problems_101_125.json,combined.json,all_solutions.json"
+  dataset_name: "nohurry/Opus-4.6-Reasoning-3000x-filtered,math_combined_2566_2567.json,problems_1_5.json,problems_6_10.json,problems_101_125.json,combined.json,all_solutions.json"
   max_seq_length: 8192                 # Reasoning chains can be long
   sft_output_dir: "./sft_output"
   num_train_epochs: 3
