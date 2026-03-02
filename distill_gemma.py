@@ -226,6 +226,23 @@ def prepare_dataset(config: DistillConfig, tokenizer: AutoTokenizer):
 
     logger.info("Tokenizing dataset...")
     tokenized = dataset.map(tokenize_fn, batched=True, remove_columns=dataset.column_names)
+    
+    # Filter out examples that were truncated (length > max_seq_length initially)
+    # We check if it ends without padding, or if we want to be safe, just filter before padding.
+    # Actually, a better way is to tokenize without padding/truncation first, filter by length, then pad.
+    def filter_long_examples(example):
+        # We can check token length
+        tokens = tokenizer(example[config.dataset_text_field], truncation=False)
+        return len(tokens["input_ids"]) <= config.max_seq_length
+        
+    logger.info("Filtering out examples that exceed maximum sequence length...")
+    original_size = len(dataset)
+    dataset = dataset.filter(filter_long_examples)
+    filtered_size = len(dataset)
+    logger.info(f"Filtered out {original_size - filtered_size} examples. Remaining: {filtered_size}")
+
+    logger.info("Re-tokenizing with padding arrays...")
+    tokenized = dataset.map(tokenize_fn, batched=True, remove_columns=dataset.column_names)
     tokenized = tokenized.with_format("torch")
 
     # Create labels (same as input_ids for causal LM, pad tokens → -100)
