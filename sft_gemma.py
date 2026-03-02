@@ -22,7 +22,7 @@ from typing import Any, Dict, Optional
 
 import torch
 import yaml
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import SFTConfig, SFTTrainer
 
@@ -203,28 +203,59 @@ def main():
     dataset_name = config["dataset_name"]
     logger.info(f"Loading dataset: {dataset_name}")
     
-    if isinstance(dataset_name, str) and (dataset_name.endswith(".json") or dataset_name.endswith(".jsonl")):
-        if "," in dataset_name:
-            data_files = [f.strip() for f in dataset_name.split(",") if f.strip()]
-            dataset = load_dataset("json", data_files=data_files, split="train")
-        else:
-            dataset = load_dataset("json", data_files=dataset_name, split="train")
+    datasets_to_concat = []
+    
+    if isinstance(dataset_name, str):
+        dataset_paths = [p.strip() for p in dataset_name.split(",") if p.strip()]
     elif isinstance(dataset_name, list):
-        dataset = load_dataset("json", data_files=dataset_name, split="train")
+        dataset_paths = dataset_name
     else:
-        dataset = load_dataset(dataset_name, split="train")
+        dataset_paths = [dataset_name]
         
-    logger.info(f"  Raw examples: {len(dataset)}")
+    for path in dataset_paths:
+        try:
+            if path.endswith(".json") or path.endswith(".jsonl"):
+                logger.info(f"Loading local JSON dataset: {path}")
+                ds = load_dataset("json", data_files=path, split="train")
+            else:
+                logger.info(f"Loading HuggingFace dataset: {path}")
+                ds = load_dataset(path, split="train")
+            datasets_to_concat.append(ds)
+        except Exception as e:
+            logger.error(f"Failed to load dataset '{path}': {e}")
+            raise e
+
+    if not datasets_to_concat:
+        raise ValueError("No datasets could be loaded.")
+        
+    if len(datasets_to_concat) > 1:
+        logger.info(f"Concatenating {len(datasets_to_concat)} datasets...")
+        
+        # We need to make sure the columns match before concatenating.
+        # Often HF datasets and local JSONs have different columns.
+        # A simple approach is to keep only the necessary columns or select common ones.
+        # But `sft_gemma.py` maps everything using `format_reasoning_example`, so as long as they
+        # have `problem` or `question` and `solution` or `thinking`, it should be fine.
+        # However, `concatenate_datasets` requires matching columns.
+        # So we format EACH dataset first, then concatenate.
+        
+        formatted_datasets = []
+        for ds in datasets_to_concat:
+            original_columns = ds.column_names
+            formatted_ds = ds.map(lambda x: format_reasoning_example(x, tokenizer), remove_columns=original_columns)
+            formatted_datasets.append(formatted_ds)
+            
+        dataset = concatenate_datasets(formatted_datasets)
+    else:
+        dataset = datasets_to_concat[0]
+        original_columns = dataset.column_names
+        dataset = dataset.map(lambda x: format_reasoning_example(x, tokenizer), remove_columns=original_columns)
+        
+    logger.info(f"  Total formulated examples: {len(dataset)}")
 
     # Shuffle dataset
     logger.info("Shuffling dataset...")
     dataset = dataset.shuffle(seed=42)
-
-    # Format dataset
-    logger.info("Formatting dataset (problem → thinking → solution)...")
-    original_columns = dataset.column_names
-    dataset = dataset.map(lambda x: format_reasoning_example(x, tokenizer), remove_columns=original_columns)
-    logger.info(f"  Formatted examples: {len(dataset)}")
 
     # Show a sample
     logger.info(f"\n--- Sample ---\n{dataset[0]['text'][:500]}...\n--------------")
