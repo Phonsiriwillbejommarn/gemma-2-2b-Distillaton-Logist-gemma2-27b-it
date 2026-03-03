@@ -42,7 +42,7 @@ save_steps: 5
 save_total_limit: 5
 report_to: "wandb"                    # "wandb" or "tensorboard" or "none"
 push_to_hub: true
-hub_model_id: "Phonsiri/gemma-2-2b-Distillation-gemma-3-27b-it"
+hub_model_id: "Phonsiri/gemma-2-2b-Distillation-gemma-2-27b-it"
 
 # --- SFT Phase (sft_gemma.py) ---
 sft:
