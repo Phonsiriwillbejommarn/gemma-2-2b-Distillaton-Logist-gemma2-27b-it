@@ -148,6 +148,9 @@ def format_reasoning_example(example: Dict[str, Any], tokenizer: AutoTokenizer) 
     if not problem:
         problem = example.get("question", "").strip()
         
+    # Inject a system-like instruction to force the teacher to expect the tags, directly lowering KL divergence
+    problem += "\n\nPlease reason step by step, and put your thoughts within <reasoning> and </reasoning> tags, and your final answer within <answer> and </answer> tags."
+        
     thinking = example.get("thinking", "").strip()
     
     # Support for OpenR1-Math-220k which stores reasoning inside 'generations'
