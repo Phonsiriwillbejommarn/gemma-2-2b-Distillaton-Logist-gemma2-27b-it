@@ -97,8 +97,31 @@ def prepare_dataset(dataset_name: str, split: str = "train"):
     Prepare dataset for GRPO. We need 'prompt' (string or list of dicts) 
     and 'answer' (for the reward function).
     """
-    dataset = load_dataset(dataset_name, split=split)
-    
+    dataset_names = [d.strip() for d in dataset_name.split(",")]
+    all_datasets = []
+
+    for path in dataset_names:
+        try:
+            if path.endswith(".json") or path.endswith(".jsonl"):
+                print(f"Loading local JSON dataset for GRPO: {path}")
+                ds = load_dataset("json", data_files=path, split="train")
+            else:
+                print(f"Loading HuggingFace dataset for GRPO: {path}")
+                ds = load_dataset(path, split="train")
+            all_datasets.append(ds)
+        except Exception as e:
+            print(f"Failed to load dataset '{path}': {e}")
+            raise e
+
+    from datasets import concatenate_datasets
+    if not all_datasets:
+        raise ValueError("No datasets could be loaded.")
+        
+    if len(all_datasets) > 1:
+        print(f"Concatenating {len(all_datasets)} datasets...")
+        dataset = concatenate_datasets(all_datasets)
+    else:
+        dataset = all_datasets[0]
     def format_row(example):
         # Specific formatting based on known math datasets
         if "problem" in example and "solution" in example:
@@ -131,17 +154,17 @@ def prepare_dataset(dataset_name: str, split: str = "train"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name_or_path", type=str, default="./sft_output", help="Path to SFT model")
-    parser.add_argument("--dataset_name", type=str, default="AI-MO/NuminaMath-TIR", help="Hugging Face dataset name")
+    parser.add_argument("--model_name_or_path", type=str, default="Phonsiri/gemma-2-2b-SFT-Reasoning-full-Model", help="Path to SFT model")
+    parser.add_argument("--dataset_name", type=str, default="open-r1/OpenR1-Math-220k", help="Hugging Face dataset name or local path")
     parser.add_argument("--output_dir", type=str, default="./grpo_output", help="Where to save the model")
-    parser.add_argument("--max_completion_length", type=int, default=4096, help="Increased for Reasoning")
-    parser.add_argument("--num_generations", type=int, default=8, help="Number of completions to generate per prompt (G)")
+    parser.add_argument("--max_completion_length", type=int, default=1024, help="Increased for Reasoning")
+    parser.add_argument("--num_generations", type=int, default=4, help="Number of completions to generate per prompt (G)")
     parser.add_argument("--per_device_train_batch_size", type=int, default=1)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8)
     parser.add_argument("--learning_rate", type=float, default=1e-6, help="Smaller LR for RL")
     parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--push_to_hub", action="store_true", default=False)
-    parser.add_argument("--hub_model_id", type=str, default="Phonsiri/gemma-2-2b-GRPO-Reasoning")
+    parser.add_argument("--push_to_hub", action="store_true", default=True)
+    parser.add_argument("--hub_model_id", type=str, default="Phonsiri/gemma-2-2b-GRPO-Reasoning-full")
     parser.add_argument("--resume_from_checkpoint", type=str, default=None, help="Path to checkpoint folder to resume from")
     args = parser.parse_args()
 
@@ -173,9 +196,16 @@ def main():
         push_to_hub=args.push_to_hub,
         hub_model_id=args.hub_model_id if args.push_to_hub else None,
         hub_strategy="checkpoint", # Added: Push to hub at every save_steps
-        # GRPO specific
+        
+        # Generation Specific
         max_completion_length=args.max_completion_length,
-        num_generations=args.num_generations, 
+        num_generations=args.num_generations,
+        temperature=0.9,
+        # vLLM specifics for fast generation
+        vllm_device="cuda:0" if torch.cuda.is_available() else "cpu",
+        vllm_gpu_memory_utilization=0.6,
+        
+        # GRPO specific
         beta=0.01,  # KL penalty coefficient
     )
 
