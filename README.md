@@ -79,7 +79,7 @@ python distill_gemma.py \
 
 | รายละเอียด | ค่า |
 |-----------|-----|
-| Teacher | `gemma/gemma-3-27b-it` (4-bit quantized, frozen) |
+| Teacher | `gemma/gemma-2-27b-it` (4-bit quantized, frozen) |
 | Student | `./sft_output` (Full Fine-Tuning) |
 | Dataset | `rasbt/math_full_minus_math500` (12.5K ข้อ) |
 | Loss | `α × KL(teacher ∥ student) × T² + (1-α) × CE` |
