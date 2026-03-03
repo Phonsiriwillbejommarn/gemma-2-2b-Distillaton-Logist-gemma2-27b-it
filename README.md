@@ -1,11 +1,11 @@
-# Knowledge Distillation: gemma-3-27b-it → gemma-2-2b
+# Knowledge Distillation: gemma-2-27b-it → gemma-2-2b
 
-ถ่ายทอดความรู้จาก **gemma-3-27b-it** (Teacher) สู่ **gemma-2-2b** (Student) ผ่าน 2 ขั้นตอน
+ถ่ายทอดความรู้จาก **gemma-2-27b-it** (Teacher) สู่ **gemma-2-2b** (Student) ผ่าน 2 ขั้นตอน
 
 ```
 Phase 1: SFT (Full Fine-Tuning)          Phase 2: Logit Distillation
 ┌─────────────────────────┐          ┌──────────────────────────────┐
-│ gemma-2-2b (Base)       │          │ Teacher: gemma2.5-32B (4-bit)│
+│ gemma-2-2b (Base)       │          │ Teacher: gemma-2-27b-it (4-bit)│
 │ + Opus Reasoning 3K     │  ──────► │ Student: SFT checkpoint      │
 │ → sft_output/           │          │ + MATH 12.5K                 │
 │ ~30-45 min (H100)       │          │ → distill_output/            │
@@ -191,10 +191,3 @@ python sft_gemma.py --max_seq_length 4096 --num_train_epochs 1
 > VRAM ขั้นต่ำ: ~38 GB (Teacher 32B 4-bit + Student 3B Full)
 
 ---
-
-## 📈 HuggingFace Hub Models
-
-| Model | Repo |
-|-------|------|
-| SFT checkpoint | [Phonsiri/gemma-2-2b-Distilled](https://huggingface.co/Phonsiri/gemma-2-2b-Distilled) |
-| Distilled (final) | [Phonsiri/gemma-2-2b-Math-Distilled](https://huggingface.co/Phonsiri/gemma-2-2b-Math-Distilled) |
