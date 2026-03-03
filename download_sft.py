@@ -3,7 +3,7 @@ from huggingface_hub import snapshot_download, login
 
 # --- กำหนดค่าตรงนี้ ---
 HF_TOKEN = "API_KEY"                      # ใส่ HF Token ของคุณตรงนี้
-MODEL_ID = "Phonsiri/gemma-2-2b-Distilled"  # ชื่อ Model บน Hugging Face ของคุณ
+MODEL_ID = "Phonsiri/gemma-2-2b-SFT-Reasoning-full-Model"  # ชื่อ Model บน Hugging Face ของคุณ
 LOCAL_DIR = "./sft_output"                    # โฟลเดอร์ปลายทางที่จะบันทึกบนเครื่อง
 
 def main():
