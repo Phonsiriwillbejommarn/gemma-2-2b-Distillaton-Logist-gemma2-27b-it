@@ -135,8 +135,7 @@ def prepare_dataset(dataset_name: str, split: str = "train"):
             solution = ""
             
         messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": f"{system_prompt}\n\n{prompt}"}
         ]
         
         return {
